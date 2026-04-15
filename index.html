@@ -12,10 +12,11 @@
   <!-- Google Fonts -->
   <link href="https://fonts.googleapis.com/css2?family=Inter:ital,wght@0,400;0,500;0,600;0,700;0,800;1,400&display=swap" rel="stylesheet">
 </head>
+<body>
 
   <div class="app-wrapper">
     <header class="app-header">
-      <h1>Inevitable TaskFlow · Dark Console</h1>
+      <h1>TaskFlow · Dark Console</h1>
       <div class="tagline">organize · track · deliver</div>
     </header>
 
@@ -48,9 +49,12 @@
                 <option value="high">🔴 High</option>
               </select>
             </div>
-            <button class="primary-btn" id="addTaskBtn" aria-label="Add task">
-              <span>+</span> Create Task
-            </button>
+            <div class="form-actions">
+              <button class="primary-btn" id="addTaskBtn" aria-label="Add task">
+                <span>+</span> Create Task
+              </button>
+              <button class="secondary-btn" id="cancelEditBtn" style="display: none;">Cancel</button>
+            </div>
           </div>
           <div id="liveFeedback" class="feedback-message" aria-live="polite"></div>
         </div>

@@ -1,8 +1,9 @@
 (function(){
   "use strict";
 
-  // ----- STATE (array of tasks) -----
+  // ----- STATE -----
   let tasks = [];
+  let editingTaskId = null; // track which task is being edited
 
   // Default sample tasks
   const defaultTasks = [
@@ -44,11 +45,21 @@
   const duePicker = document.getElementById('dueDatePicker');
   const prioritySelect = document.getElementById('prioritySelect');
   const addBtn = document.getElementById('addTaskBtn');
+  const cancelBtn = document.getElementById('cancelEditBtn');
 
   // Set default due date (tomorrow)
   const tomorrow = new Date();
   tomorrow.setDate(tomorrow.getDate() + 1);
   duePicker.value = tomorrow.toISOString().split('T')[0];
+
+  // ----- Helper: format date as "15 Apr 2026" -----
+  function formatDueDate(dateStr) {
+    const date = new Date(dateStr);
+    const day = date.getDate();
+    const month = date.toLocaleString('en-US', { month: 'short' });
+    const year = date.getFullYear();
+    return `${day} ${month} ${year}`;
+  }
 
   // ----- Helper: calculate relative time -----
   function getRelativeTime(dueDateStr, isCompleted) {
@@ -64,11 +75,44 @@
     return 'Due soon';
   }
 
-  // simple escape for XSS prevention
   function escapeHtml(text) {
     const div = document.createElement('div');
     div.textContent = text;
     return div.innerHTML;
+  }
+
+  // ----- UI: Update form button state based on editing mode -----
+  function updateFormUI() {
+    if (editingTaskId) {
+      addBtn.innerHTML = `<span>✏️</span> Update Task`;
+      cancelBtn.style.display = 'inline-flex';
+    } else {
+      addBtn.innerHTML = `<span>+</span> Create Task`;
+      cancelBtn.style.display = 'none';
+    }
+  }
+
+  // ----- Clear form and exit edit mode -----
+  function resetForm() {
+    titleInput.value = '';
+    descInput.value = '';
+    const nextDay = new Date();
+    nextDay.setDate(nextDay.getDate() + 1);
+    duePicker.value = nextDay.toISOString().split('T')[0];
+    prioritySelect.value = 'medium';
+    editingTaskId = null;
+    updateFormUI();
+  }
+
+  // ----- Populate form with task data for editing -----
+  function populateFormForEdit(task) {
+    titleInput.value = task.title;
+    descInput.value = task.description;
+    duePicker.value = task.dueDate;
+    prioritySelect.value = task.priority;
+    editingTaskId = task.id;
+    updateFormUI();
+    titleInput.focus();
   }
 
   // ----- Render all cards -----
@@ -91,8 +135,7 @@
       if (task.priority === 'high') priorityClass = 'priority-high';
       if (task.priority === 'low') priorityClass = 'priority-low';
       
-      // ✅ YEAR RESTORED HERE
-      const dueDisplay = new Date(task.dueDate).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' });
+      const dueDisplay = formatDueDate(task.dueDate);
 
       html += `
         <article class="task-card ${completedClass}" data-task-id="${task.id}">
@@ -100,6 +143,7 @@
             <input type="checkbox" class="task-check" ${task.completed ? 'checked' : ''} data-action="toggle" data-id="${task.id}" aria-label="Mark as complete">
             <h3 class="card-title">${escapeHtml(task.title)}</h3>
             <div class="card-actions">
+              <button class="icon-btn" data-action="edit" data-id="${task.id}" aria-label="Edit task">✏️</button>
               <button class="icon-btn" data-action="delete" data-id="${task.id}" aria-label="Delete task">🗑️</button>
             </div>
           </div>
@@ -118,8 +162,8 @@
     gridEl.innerHTML = html;
   }
 
-  // ----- Add new task -----
-  function addNewTask() {
+  // ----- Save task (add or update) -----
+  function saveTask() {
     const title = titleInput.value.trim();
     const desc = descInput.value.trim();
     const due = duePicker.value;
@@ -134,28 +178,44 @@
       return;
     }
 
-    const newTask = {
-      id: Date.now() + '' + Math.floor(Math.random() * 1000),
-      title: title,
-      description: desc || 'No description provided.',
-      priority: priority,
-      status: 'pending',
-      dueDate: due,
-      completed: false
-    };
+    if (editingTaskId) {
+      // Update existing task
+      const taskIndex = tasks.findIndex(t => t.id === editingTaskId);
+      if (taskIndex !== -1) {
+        tasks[taskIndex] = {
+          ...tasks[taskIndex],
+          title,
+          description: desc || 'No description provided.',
+          priority,
+          dueDate: due
+        };
+        feedbackEl.textContent = `✅ Task updated.`;
+      }
+    } else {
+      // Add new task
+      const newTask = {
+        id: Date.now() + '' + Math.floor(Math.random() * 1000),
+        title,
+        description: desc || 'No description provided.',
+        priority,
+        status: 'pending',
+        dueDate: due,
+        completed: false
+      };
+      tasks.unshift(newTask);
+      feedbackEl.textContent = `✅ Task added.`;
+    }
 
-    tasks.unshift(newTask);
     renderTasks();
-
-    titleInput.value = '';
-    descInput.value = '';
-    const nextDay = new Date();
-    nextDay.setDate(nextDay.getDate() + 1);
-    duePicker.value = nextDay.toISOString().split('T')[0];
-    prioritySelect.value = 'medium';
-
-    feedbackEl.textContent = `✅ Task added.`;
+    resetForm();
     setTimeout(() => { feedbackEl.textContent = ''; }, 2000);
+  }
+
+  // ----- Cancel edit -----
+  function cancelEdit() {
+    resetForm();
+    feedbackEl.textContent = 'Edit cancelled.';
+    setTimeout(() => { feedbackEl.textContent = ''; }, 1500);
   }
 
   // ----- Toggle complete -----
@@ -170,12 +230,15 @@
   // ----- Delete task -----
   function deleteTask(taskId) {
     tasks = tasks.filter(t => t.id !== taskId);
+    if (editingTaskId === taskId) {
+      resetForm(); // exit edit mode if the task being edited is deleted
+    }
     renderTasks();
     feedbackEl.textContent = 'Task removed.';
     setTimeout(() => { feedbackEl.textContent = ''; }, 1200);
   }
 
-  // ----- Event delegation -----
+  // ----- Event delegation for grid actions -----
   gridEl.addEventListener('click', (e) => {
     const target = e.target.closest('[data-action]');
     if (!target) return;
@@ -186,6 +249,11 @@
       toggleTask(taskId);
     } else if (action === 'delete') {
       deleteTask(taskId);
+    } else if (action === 'edit') {
+      const task = tasks.find(t => t.id === taskId);
+      if (task) {
+        populateFormForEdit(task);
+      }
     }
   });
 
@@ -196,20 +264,24 @@
     }
   });
 
-  addBtn.addEventListener('click', addNewTask);
+  // ----- Button listeners -----
+  addBtn.addEventListener('click', saveTask);
+  cancelBtn.addEventListener('click', cancelEdit);
+
   titleInput.addEventListener('keypress', (e) => {
     if (e.key === 'Enter') {
       e.preventDefault();
-      addNewTask();
+      saveTask();
     }
   });
 
   // Initialize
   tasks = defaultTasks.map(t => ({ ...t, id: t.id + '-' + Date.now() + Math.random() }));
   renderTasks();
+  updateFormUI();
 
-  // Periodic time update (every 45 seconds)
+  // Periodic time update
   setInterval(() => {
     renderTasks();
   }, 45000);
-})()
+})();
