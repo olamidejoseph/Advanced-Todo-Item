@@ -1,0 +1,73 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+  <title>TaskFlow · Dark Dashboard</title>
+  <meta name="description" content="A sleek, dark-themed task manager with real-time tracking and priority management.">
+  
+  <!-- External CSS -->
+  <link rel="stylesheet" href="styles.css">
+  
+  <!-- Google Fonts -->
+  <link href="https://fonts.googleapis.com/css2?family=Inter:ital,wght@0,400;0,500;0,600;0,700;0,800;1,400&display=swap" rel="stylesheet">
+</head>
+
+  <div class="app-wrapper">
+    <header class="app-header">
+      <h1>Inevitable TaskFlow · Dark Console</h1>
+      <div class="tagline">organize · track · deliver</div>
+    </header>
+
+    <main id="main-content">
+      <!-- Task creation panel -->
+      <section class="task-creator" aria-labelledby="new-task-heading">
+        <h2 id="new-task-heading" class="visually-hidden">Create new task</h2>
+        
+        <div class="form-grid">
+          <div class="input-wrapper">
+            <label for="taskTitleInput">Task name</label>
+            <input type="text" id="taskTitleInput" placeholder="e.g., Refactor authentication module" autocomplete="off">
+          </div>
+          
+          <div class="input-wrapper">
+            <label for="taskDescInput">Description</label>
+            <textarea id="taskDescInput" placeholder="Details, notes, or sub-steps..."></textarea>
+          </div>
+          
+          <div class="field-row">
+            <div class="input-wrapper">
+              <label for="dueDatePicker">Due date</label>
+              <input type="date" id="dueDatePicker">
+            </div>
+            <div class="input-wrapper">
+              <label for="prioritySelect">Priority</label>
+              <select id="prioritySelect">
+                <option value="low">🟢 Low</option>
+                <option value="medium" selected>🟡 Medium</option>
+                <option value="high">🔴 High</option>
+              </select>
+            </div>
+            <button class="primary-btn" id="addTaskBtn" aria-label="Add task">
+              <span>+</span> Create Task
+            </button>
+          </div>
+          <div id="liveFeedback" class="feedback-message" aria-live="polite"></div>
+        </div>
+      </section>
+
+      <!-- Task grid -->
+      <section aria-labelledby="board-heading">
+        <h2 id="board-heading" class="visually-hidden">Task board</h2>
+        <div id="taskGridContainer" class="task-board">
+          <!-- Dynamic cards will be injected here -->
+        </div>
+        <div id="emptyPlaceholder" class="empty-message">✨ No tasks yet. Create one to get started.</div>
+      </section>
+    </main>
+  </div>
+
+  <!-- External JavaScript -->
+  <script src="script.js"></script>
+</body>
+</html>
